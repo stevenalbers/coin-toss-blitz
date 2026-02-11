@@ -5,6 +5,7 @@ import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import type { Player } from "../lib/types/game";
 import { sortPlayersWithTiebreaker, formatLockInTime, calculateAvgLockInTime } from "../lib/utils/tiebreaker";
 import { useNumberRollup } from "@/lib/hooks/useNumberRollup";
+import { ANIMATION_DURATIONS, SPRING_CONFIGS } from "@/party/consts";
 
 interface LeaderboardProps {
   players: Player[];
@@ -32,7 +33,7 @@ function PlayerRow({
   const previousChipsRef = useRef(player.chips);
 
   // Always call useNumberRollup to maintain hook order
-  const animatedChips = useNumberRollup(player.chips, 1500);
+  const animatedChips = useNumberRollup(player.chips, ANIMATION_DURATIONS.numberRollup.chips);
 
   // Use animated or static value based on animatePositions prop
   const displayChips = animatePositions ? animatedChips : player.chips;
@@ -47,14 +48,14 @@ function PlayerRow({
     } else {
       const timer = setTimeout(() => {
         previousChipsRef.current = player.chips;
-      }, 1500);
+      }, ANIMATION_DURATIONS.numberRollup.chips);
       return () => clearTimeout(timer);
     }
   }, [player.chips, animatePositions]);
 
   const transition = shouldReduceMotion
-    ? { duration: 0.3 }
-    : { type: "spring", stiffness: 300, damping: 30 };
+    ? { duration: ANIMATION_DURATIONS.generic.reducedMotion / 1000 }
+    : SPRING_CONFIGS.default;
 
   return (
     <motion.div
@@ -119,7 +120,7 @@ function PlayerRow({
             animate={{
               scale: [1, 1.2, 1],
             }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: ANIMATION_DURATIONS.generic.medium / 1000 }}
             className={`text-lg font-bold ${
               chipChange > 0
                 ? "text-green-400"

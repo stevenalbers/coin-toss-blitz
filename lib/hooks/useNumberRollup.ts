@@ -1,20 +1,21 @@
 import { useState, useEffect } from "react";
+import { ANIMATION_DURATIONS } from "@/party/consts";
 
 /**
  * Hook for animating number changes with smooth rollup effect
  *
  * @param target - Target value to animate to
- * @param duration - Animation duration in milliseconds (default: 1000ms)
+ * @param duration - Animation duration in milliseconds (default from ANIMATION_DURATIONS.numberRollup.default)
  * @param onComplete - Optional callback when animation completes
  * @returns Current animated value (rounded to integer)
  *
  * @example
- * const displayValue = useNumberRollup(player.chips, 1500);
+ * const displayValue = useNumberRollup(player.chips, ANIMATION_DURATIONS.numberRollup.chips);
  * return <span>{displayValue} 🪙</span>
  */
 export function useNumberRollup(
   target: number,
-  duration: number = 1000,
+  duration: number = ANIMATION_DURATIONS.numberRollup.default,
   onComplete?: () => void
 ): number {
   const [current, setCurrent] = useState(target);

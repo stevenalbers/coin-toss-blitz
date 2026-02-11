@@ -10,6 +10,7 @@ import { HostControls } from "./HostControls";
 import { MatchupReveal } from "./MatchupReveal";
 import { PotSummary } from "./PotSummary";
 import { ResultsSummary } from "./ResultsSummary";
+import { ANIMATION_DURATIONS } from "@/party/consts";
 
 interface GamePhaseProps {
   gameState: SerializedGameState;
@@ -218,7 +219,7 @@ export function GamePhase({
         <CoinFlip
           result={gameState.flipResult}
           timestamp={gameState.flipTimestamp}
-          animationDuration={2000}
+          animationDuration={ANIMATION_DURATIONS.coinFlip.duration}
         />
 
         <Leaderboard
@@ -273,7 +274,7 @@ export function GamePhase({
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.3 }}
+            transition={{ duration: ANIMATION_DURATIONS.generic.quick / 1000 }}
             className="text-center text-gray-400"
           >
             Next round starting soon...

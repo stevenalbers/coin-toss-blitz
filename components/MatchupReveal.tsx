@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import type { Player } from "../lib/types/game";
+import { ANIMATION_DURATIONS, SPRING_CONFIGS } from "@/party/consts";
 
 interface MatchupRevealProps {
   myPlayer: Player;
@@ -19,11 +20,10 @@ export function MatchupReveal({
   const shouldReduceMotion = useReducedMotion();
 
   useEffect(() => {
-    // Total animation duration: 3 seconds
-    // Hold for 2.5s then fade out (0.5s)
+    // Total animation duration based on ANIMATION_DURATIONS
     const timer = setTimeout(() => {
       setIsVisible(false);
-    }, 2500);
+    }, ANIMATION_DURATIONS.matchupReveal.total);
 
     return () => clearTimeout(timer);
   }, []);
@@ -34,8 +34,8 @@ export function MatchupReveal({
   };
 
   const transition = shouldReduceMotion
-    ? { duration: 0.3 }
-    : { type: "spring", stiffness: 300, damping: 30 };
+    ? { duration: ANIMATION_DURATIONS.generic.reducedMotion / 1000 }
+    : SPRING_CONFIGS.default;
 
   const coinEmoji = myPlayer.assignedSide === "HEADS" ? "👤" : "🦅";
   const coinLabel = myPlayer.assignedSide;
@@ -47,7 +47,7 @@ export function MatchupReveal({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.3 }}
+          transition={{ duration: ANIMATION_DURATIONS.generic.quick / 1000 }}
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
         >
           <div className="flex flex-col items-center space-y-8 px-4">
@@ -57,8 +57,8 @@ export function MatchupReveal({
               animate={{ scale: 1, opacity: 1 }}
               transition={
                 shouldReduceMotion
-                  ? { duration: 0.3, delay: 0.2 }
-                  : { type: "spring", stiffness: 200, damping: 15, delay: 0.2 }
+                  ? { duration: ANIMATION_DURATIONS.generic.reducedMotion / 1000, delay: ANIMATION_DURATIONS.matchupReveal.coinDelay / 1000 }
+                  : { ...SPRING_CONFIGS.gentle, delay: ANIMATION_DURATIONS.matchupReveal.coinDelay / 1000 }
               }
               className="text-center"
             >
@@ -72,8 +72,8 @@ export function MatchupReveal({
               animate={{ scale: 1, opacity: 1 }}
               transition={
                 shouldReduceMotion
-                  ? { duration: 0.3, delay: 0.5 }
-                  : { type: "spring", stiffness: 300, damping: 25, delay: 0.5 }
+                  ? { duration: ANIMATION_DURATIONS.generic.reducedMotion / 1000, delay: ANIMATION_DURATIONS.matchupReveal.vsDelay / 1000 }
+                  : { ...SPRING_CONFIGS.snappy, delay: ANIMATION_DURATIONS.matchupReveal.vsDelay / 1000 }
               }
               className="text-3xl font-bold text-gray-400"
             >
@@ -87,8 +87,8 @@ export function MatchupReveal({
                 animate={{ x: 0, opacity: 1 }}
                 transition={
                   shouldReduceMotion
-                    ? { duration: 0.3, delay: 0.8 }
-                    : { ...transition, delay: 0.8 }
+                    ? { duration: ANIMATION_DURATIONS.generic.reducedMotion / 1000, delay: ANIMATION_DURATIONS.matchupReveal.opponentDelay / 1000 }
+                    : { ...transition, delay: ANIMATION_DURATIONS.matchupReveal.opponentDelay / 1000 }
                 }
                 className="text-center"
               >
@@ -105,8 +105,8 @@ export function MatchupReveal({
                 animate={{ x: 0, opacity: 1 }}
                 transition={
                   shouldReduceMotion
-                    ? { duration: 0.3, delay: 0.8 }
-                    : { ...transition, delay: 0.8 }
+                    ? { duration: ANIMATION_DURATIONS.generic.reducedMotion / 1000, delay: ANIMATION_DURATIONS.matchupReveal.opponentDelay / 1000 }
+                    : { ...transition, delay: ANIMATION_DURATIONS.matchupReveal.opponentDelay / 1000 }
                 }
                 className="text-center"
               >

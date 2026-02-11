@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import type { Player, CoinSide } from "../lib/types/game";
 import { useNumberRollup, formatChipChange } from "@/lib/hooks/useNumberRollup";
+import { ANIMATION_DURATIONS, SPRING_CONFIGS } from "@/party/consts";
 
 interface ResultsSummaryProps {
   myPlayer: Player | null;
@@ -21,7 +22,7 @@ export function ResultsSummary({
   const shouldReduceMotion = useReducedMotion();
 
   // Animate chip change from 0 to actual change
-  const animatedChange = useNumberRollup(Math.abs(chipChange), 1500);
+  const animatedChange = useNumberRollup(Math.abs(chipChange), ANIMATION_DURATIONS.numberRollup.chipChange);
 
   // Determine if player won
   const didWin = myPlayer && myPlayer.assignedSide === flipResult;
@@ -31,7 +32,7 @@ export function ResultsSummary({
     // Call completion callback after animation duration
     const timer = setTimeout(() => {
       onAnimationComplete();
-    }, 2000);
+    }, ANIMATION_DURATIONS.results.total);
 
     return () => clearTimeout(timer);
   }, [onAnimationComplete]);
@@ -59,8 +60,8 @@ export function ResultsSummary({
       animate={{ opacity: 1, y: 0 }}
       transition={
         shouldReduceMotion
-          ? { duration: 0.3 }
-          : { type: "spring", stiffness: 300, damping: 30 }
+          ? { duration: ANIMATION_DURATIONS.generic.reducedMotion / 1000 }
+          : SPRING_CONFIGS.default
       }
       className="bg-gray-900 rounded-lg p-8 text-center space-y-6"
     >
@@ -70,8 +71,8 @@ export function ResultsSummary({
         animate={{ scale: 1 }}
         transition={
           shouldReduceMotion
-            ? { duration: 0.3, delay: 0.2 }
-            : { type: "spring", stiffness: 200, damping: 15, delay: 0.2 }
+            ? { duration: ANIMATION_DURATIONS.generic.reducedMotion / 1000, delay: ANIMATION_DURATIONS.results.flipResultDelay / 1000 }
+            : { ...SPRING_CONFIGS.gentle, delay: ANIMATION_DURATIONS.results.flipResultDelay / 1000 }
         }
       >
         <div className="text-6xl mb-2">{resultEmoji}</div>
@@ -84,8 +85,8 @@ export function ResultsSummary({
         animate={{ scale: 1, opacity: 1 }}
         transition={
           shouldReduceMotion
-            ? { duration: 0.3, delay: 0.4 }
-            : { type: "spring", stiffness: 300, damping: 25, delay: 0.4 }
+            ? { duration: ANIMATION_DURATIONS.generic.reducedMotion / 1000, delay: ANIMATION_DURATIONS.results.outcomeDelay / 1000 }
+            : { ...SPRING_CONFIGS.snappy, delay: ANIMATION_DURATIONS.results.outcomeDelay / 1000 }
         }
       >
         <div className="text-4xl mb-2">
@@ -105,8 +106,8 @@ export function ResultsSummary({
           animate={{ scale: 1, opacity: 1 }}
           transition={
             shouldReduceMotion
-              ? { duration: 0.3, delay: 0.6 }
-              : { type: "spring", stiffness: 300, damping: 25, delay: 0.6 }
+              ? { duration: ANIMATION_DURATIONS.generic.reducedMotion / 1000, delay: ANIMATION_DURATIONS.results.chipChangeDelay / 1000 }
+              : { ...SPRING_CONFIGS.snappy, delay: ANIMATION_DURATIONS.results.chipChangeDelay / 1000 }
           }
         >
           <motion.div
@@ -114,9 +115,9 @@ export function ResultsSummary({
               scale: [1, 1.1, 1],
             }}
             transition={{
-              duration: 0.5,
-              delay: 0.8,
-              repeat: 2,
+              duration: ANIMATION_DURATIONS.generic.medium / 1000,
+              delay: ANIMATION_DURATIONS.results.chipPulseDelay / 1000,
+              repeat: ANIMATION_DURATIONS.results.chipPulseCount,
             }}
             className={`text-4xl font-bold ${
               chipChange > 0 ? "text-green-400" : "text-red-400"
@@ -131,7 +132,7 @@ export function ResultsSummary({
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 1.2 }}
+              transition={{ delay: ANIMATION_DURATIONS.results.chipPulseDelay / 1000 + 0.4 }}
               className="mt-4 text-sm text-yellow-400"
             >
               ⚠️ You're eliminated - chips stay at 0
@@ -145,7 +146,7 @@ export function ResultsSummary({
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.6 }}
+          transition={{ delay: ANIMATION_DURATIONS.results.chipChangeDelay / 1000 }}
           className="text-gray-400"
         >
           No chips changed hands

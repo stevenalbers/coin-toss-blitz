@@ -4,6 +4,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import type { Pair, Player } from "../lib/types/game";
 import { getAllPots, isMyPair } from "@/lib/utils/gameHelpers";
 import { useNumberRollup } from "@/lib/hooks/useNumberRollup";
+import { ANIMATION_DURATIONS, SPRING_CONFIGS } from "@/party/consts";
 
 interface PotSummaryProps {
   pairs: Pair[];
@@ -26,7 +27,7 @@ function PotRow({
   delay?: number;
 }) {
   const shouldReduceMotion = useReducedMotion();
-  const animatedPot = useNumberRollup(pot, 1000);
+  const animatedPot = useNumberRollup(pot, ANIMATION_DURATIONS.numberRollup.pot);
 
   const player1Bet = player1.currentBet || 0;
   const player2Bet = player2.currentBet || 0;
@@ -37,8 +38,8 @@ function PotRow({
       animate={{ opacity: 1, y: 0 }}
       transition={
         shouldReduceMotion
-          ? { duration: 0.3, delay }
-          : { type: "spring", stiffness: 300, damping: 30, delay }
+          ? { duration: ANIMATION_DURATIONS.generic.reducedMotion / 1000, delay }
+          : { ...SPRING_CONFIGS.default, delay }
       }
       className={`
         p-4 rounded-lg
@@ -117,7 +118,7 @@ export function PotSummary({
           key={countdownValue}
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: "spring", stiffness: 300, damping: 20 }}
+          transition={SPRING_CONFIGS.countdown}
           className="text-6xl font-bold text-red-400"
         >
           {countdownValue}
@@ -155,7 +156,7 @@ export function PotSummary({
                 player2={potInfo.player2}
                 pot={potInfo.pot}
                 isMyMatchup={false}
-                delay={0.1 * (index + 1)}
+                delay={ANIMATION_DURATIONS.potSummary.staggerDelay / 1000 * (index + 1)}
               />
             ))}
           </div>

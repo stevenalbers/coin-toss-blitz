@@ -3,14 +3,19 @@
 import { useState, useEffect } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import type { CoinSide } from "../lib/types/game";
+import { ANIMATION_DURATIONS, SPRING_CONFIGS } from "@/party/consts";
 
 interface CoinFlipProps {
   result: CoinSide;
   timestamp: number;
-  animationDuration: number;
+  animationDuration?: number;
 }
 
-export function CoinFlip({ result, timestamp, animationDuration }: CoinFlipProps) {
+export function CoinFlip({
+  result,
+  timestamp,
+  animationDuration = ANIMATION_DURATIONS.coinFlip.duration
+}: CoinFlipProps) {
   const [isAnimating, setIsAnimating] = useState(false);
   const [showResult, setShowResult] = useState(false);
   const shouldReduceMotion = useReducedMotion();
@@ -48,7 +53,7 @@ export function CoinFlip({ result, timestamp, animationDuration }: CoinFlipProps
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
-          transition={{ type: "spring", stiffness: 200, damping: 15 }}
+          transition={SPRING_CONFIGS.gentle}
           className="text-6xl mb-4"
         >
           {result === "HEADS" ? "👤" : "🦅"}
