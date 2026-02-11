@@ -71,6 +71,8 @@ export type ClientMessage =
   | { type: "host_reset" }
   | { type: "host_pause" }
   | { type: "host_resume" }
+  | { type: "host_skip_countdown" }
+  | { type: "host_skip_results" }
   | { type: "ping" };
 
 // Server->Client messages

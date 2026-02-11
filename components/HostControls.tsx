@@ -10,6 +10,8 @@ interface HostControlsProps {
   onReset: () => void;
   onPause: () => void;
   onResume: () => void;
+  onSkipCountdown?: () => void;
+  onSkipResults?: () => void;
   isPaused: boolean;
 }
 
@@ -20,6 +22,8 @@ export function HostControls({
   onReset,
   onPause,
   onResume,
+  onSkipCountdown,
+  onSkipResults,
   isPaused,
 }: HostControlsProps) {
   const [showResetConfirm, setShowResetConfirm] = useState(false);
@@ -55,6 +59,26 @@ export function HostControls({
       ) : (
         // In-game controls
         <div className="space-y-2">
+          {/* Skip Countdown (during COUNTDOWN phase) */}
+          {phase === "COUNTDOWN" && onSkipCountdown && (
+            <button
+              onClick={onSkipCountdown}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-colors"
+            >
+              ⏩ Skip to Flip
+            </button>
+          )}
+
+          {/* Skip Results (during RESULTS phase) */}
+          {phase === "RESULTS" && onSkipResults && (
+            <button
+              onClick={onSkipResults}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-colors"
+            >
+              ⏩ Next Round
+            </button>
+          )}
+
           {/* Pause/Resume */}
           <button
             onClick={isPaused ? onResume : onPause}

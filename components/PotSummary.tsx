@@ -102,7 +102,7 @@ export function PotSummary({ pairs, players, myPlayerId, countdownValue }: PotSu
     <div className="bg-gray-900 rounded-lg p-6 space-y-4">
       {/* Countdown timer */}
       <div className="text-center mb-6">
-        <motion.div
+        {/* <motion.div
           key={countdownValue}
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -110,7 +110,7 @@ export function PotSummary({ pairs, players, myPlayerId, countdownValue }: PotSu
           className="text-6xl font-bold text-red-400"
         >
           {countdownValue}
-        </motion.div>
+        </motion.div> */}
         <div className="text-sm text-gray-400 mt-2">Flipping soon...</div>
       </div>
 

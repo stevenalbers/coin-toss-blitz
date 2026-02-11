@@ -205,6 +205,7 @@ export function GamePhase({
             onReset={() => onSendMessage({ type: "host_reset" })}
             onPause={() => onSendMessage({ type: "host_pause" })}
             onResume={() => onSendMessage({ type: "host_resume" })}
+            onSkipCountdown={() => onSendMessage({ type: "host_skip_countdown" })}
             isPaused={gameState.isPaused}
           />
         )}
@@ -289,6 +290,7 @@ export function GamePhase({
             onReset={() => onSendMessage({ type: "host_reset" })}
             onPause={() => onSendMessage({ type: "host_pause" })}
             onResume={() => onSendMessage({ type: "host_resume" })}
+            onSkipResults={() => onSendMessage({ type: "host_skip_results" })}
             isPaused={gameState.isPaused}
           />
         )}

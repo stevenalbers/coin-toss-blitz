@@ -14,12 +14,13 @@ import type {
 import { calculatePotResult, applyPotResult } from "../lib/utils/potCalculation";
 import { sortPlayersWithTiebreaker, calculateAvgLockInTime } from "../lib/utils/tiebreaker";
 import { generateBotBet, generateBotLockInDelay, createBotPlayer } from "./botLogic";
-import { BET_OPTIONS, COIN_FLIP_COUNTDOWN_SECONDS, ROUND_TIME } from "./consts";
+import { BET_OPTIONS, COIN_FLIP_COUNTDOWN_SECONDS, ROUND_TIME, ANIMATION_DURATIONS } from "./consts";
 
 export default class GameServer implements Party.Server {
   private gameState: GameState;
   private bettingTimer: NodeJS.Timeout | null = null;
   private countdownTimer: NodeJS.Timeout | null = null;
+  private resultsTimer: NodeJS.Timeout | null = null;
   private botTimers: Map<string, NodeJS.Timeout> = new Map();
 
   constructor(readonly room: Party.Room) {
@@ -106,6 +107,12 @@ export default class GameServer implements Party.Server {
         break;
       case "host_resume":
         this.handleHostResume(playerId);
+        break;
+      case "host_skip_countdown":
+        this.handleHostSkipCountdown(playerId);
+        break;
+      case "host_skip_results":
+        this.handleHostSkipResults(playerId);
         break;
       case "ping":
         this.sendToConnection(sender, { type: "pong" });
@@ -325,6 +332,43 @@ export default class GameServer implements Party.Server {
     });
 
     this.broadcastState();
+  }
+
+  private handleHostSkipCountdown(playerId: string) {
+    // Verify player is host
+    if (playerId !== this.gameState.hostId) return;
+
+    // Only allow skipping during COUNTDOWN phase
+    if (this.gameState.phase !== "COUNTDOWN") return;
+
+    // Clear the countdown timer
+    if (this.countdownTimer) {
+      clearTimeout(this.countdownTimer);
+      this.countdownTimer = null;
+    }
+
+    // Reset countdown value
+    this.gameState.countdownValue = null;
+
+    // Immediately perform the flip
+    this.performFlip();
+  }
+
+  private handleHostSkipResults(playerId: string) {
+    // Verify player is host
+    if (playerId !== this.gameState.hostId) return;
+
+    // Only allow skipping during RESULTS phase
+    if (this.gameState.phase !== "RESULTS") return;
+
+    // Clear the results timer
+    if (this.resultsTimer) {
+      clearTimeout(this.resultsTimer);
+      this.resultsTimer = null;
+    }
+
+    // Immediately advance to next round
+    this.advanceToNextRound();
   }
 
   // ==================== GAME LOGIC ====================
@@ -599,10 +643,11 @@ export default class GameServer implements Party.Server {
 
     this.broadcastState();
 
-    // Wait 5 seconds, then continue
-    setTimeout(() => {
+    // Wait for results animation to complete, then continue
+    this.resultsTimer = setTimeout(() => {
+      this.resultsTimer = null;
       this.advanceToNextRound();
-    }, 5000);
+    }, ANIMATION_DURATIONS.results.total);
   }
 
   private advanceToNextRound() {
