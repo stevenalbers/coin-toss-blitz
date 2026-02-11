@@ -1,0 +1,4 @@
+{
+  "name": "coin-toss-blitz",
+  "main": "party/server.ts"
+}
