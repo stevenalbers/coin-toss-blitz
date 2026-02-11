@@ -213,6 +213,9 @@ export default class GameServer implements Party.Server {
       lockTime: player.currentBetLockTime,
     });
 
+    // Broadcast updated game state so clients see the locked status
+    this.broadcastState();
+
     // Check if all players have locked in
     this.checkAllPlayersLocked();
   }
@@ -428,7 +431,7 @@ export default class GameServer implements Party.Server {
 
   private checkAllPlayersLocked() {
     const allLocked = Array.from(this.gameState.players.values())
-      .filter(p => !p.sittingOut)
+      .filter(p => !p.isBot)
       .every(p => p.betStatus === "locked");
 
     if (allLocked && this.gameState.phase === "BETTING") {
@@ -452,7 +455,6 @@ export default class GameServer implements Party.Server {
           : currentRound >= 7
             ? BET_OPTIONS.high
             : BET_OPTIONS.low;
-        // const validBets = player.eliminated ? [0, 10, 25] : [10, 25, 50];
         const randomBet = betOptions[Math.floor(Math.random() * betOptions.length)];
 
         player.currentBet = randomBet;

@@ -35,6 +35,7 @@ export interface Player {
   betStatus: BetStatus;
   assignedSide: CoinSide | null; // HEADS or TAILS for current round
   pairedWith: string | null; // ID of opponent for current round
+  /** @deprecated Consider removing, all players are active at all times */
   sittingOut: boolean; // True if sitting out this round (odd number of players)
 }
 
