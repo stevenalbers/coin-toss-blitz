@@ -14,7 +14,7 @@ import type {
 import { calculatePotResult, applyPotResult } from "../lib/utils/potCalculation";
 import { sortPlayersWithTiebreaker, calculateAvgLockInTime } from "../lib/utils/tiebreaker";
 import { generateBotBet, generateBotLockInDelay, createBotPlayer } from "./botLogic";
-import { BET_OPTIONS, ROUND_TIME } from "./consts";
+import { BET_OPTIONS, COIN_FLIP_COUNTDOWN_SECONDS, ROUND_TIME } from "./consts";
 
 export default class GameServer implements Party.Server {
   private gameState: GameState;
@@ -413,11 +413,27 @@ export default class GameServer implements Party.Server {
     const bot = this.gameState.players.get(botId);
     if (!bot || !bot.isBot) return;
 
+    // Only process bot bet if still in BETTING phase
+    if (this.gameState.phase !== "BETTING") {
+      // Clear the timer if it hasn't been cleared yet
+      this.botTimers.delete(botId);
+      return;
+    }
+
+    // Only bet once per round - check if already locked
+    if (bot.betStatus === "locked") {
+      this.botTimers.delete(botId);
+      return;
+    }
+
     // Generate bot bet
     const bet = generateBotBet(bot.eliminated, this.gameState.currentRound);
     bot.currentBet = bet;
     bot.betStatus = "locked";
     bot.currentBetLockTime = Date.now();
+
+    // Remove timer from map since it has fired
+    this.botTimers.delete(botId);
 
     this.broadcast({
       type: "bet_locked",
@@ -445,6 +461,10 @@ export default class GameServer implements Party.Server {
   }
 
   private endBettingPhase() {
+    // Clear all bot timers to prevent them from firing during countdown
+    this.botTimers.forEach(timer => clearTimeout(timer));
+    this.botTimers.clear();
+
     // Auto-assign bets for unlocked players
     this.gameState.players.forEach(player => {
       if (player.betStatus !== "locked" && !player.sittingOut) {
@@ -469,7 +489,7 @@ export default class GameServer implements Party.Server {
 
   private startCountdown() {
     this.gameState.phase = "COUNTDOWN";
-    this.gameState.countdownValue = 3;
+    this.gameState.countdownValue = COIN_FLIP_COUNTDOWN_SECONDS;
 
     const countdown = () => {
       if (this.gameState.countdownValue === null) return;

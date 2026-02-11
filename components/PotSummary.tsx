@@ -75,10 +75,7 @@ function PotRow({
 
         {/* Animated pot value */}
         <div className="flex-shrink-0 text-right min-w-[80px]">
-          <motion.span
-            key={pot}
-            className={`font-bold text-lg ${isMyMatchup ? "text-yellow-400" : "text-green-400"}`}
-          >
+          <motion.span key={pot} className={`font-bold text-lg ${isMyMatchup ? "text-yellow-400" : "text-green-400"}`}>
             {animatedPot} 🪙
           </motion.span>
         </div>
@@ -94,21 +91,12 @@ function PotRow({
   );
 }
 
-export function PotSummary({
-  pairs,
-  players,
-  myPlayerId,
-  countdownValue,
-}: PotSummaryProps) {
+export function PotSummary({ pairs, players, myPlayerId, countdownValue }: PotSummaryProps) {
   const allPots = getAllPots(pairs, players);
 
   // Separate my matchup from others
-  const myMatchup = allPots.find((potInfo) =>
-    isMyPair(potInfo.pair, myPlayerId)
-  );
-  const otherMatchups = allPots.filter(
-    (potInfo) => !isMyPair(potInfo.pair, myPlayerId)
-  );
+  const myMatchup = allPots.find((potInfo) => isMyPair(potInfo.pair, myPlayerId));
+  const otherMatchups = allPots.filter((potInfo) => !isMyPair(potInfo.pair, myPlayerId));
 
   return (
     <div className="bg-gray-900 rounded-lg p-6 space-y-4">
@@ -129,9 +117,7 @@ export function PotSummary({
       {/* My matchup */}
       {myMatchup && (
         <div>
-          <div className="text-xs font-semibold text-blue-400 mb-2 uppercase tracking-wide">
-            Your Matchup
-          </div>
+          <div className="text-xs font-semibold text-blue-400 mb-2 uppercase tracking-wide">Your Matchup</div>
           <PotRow
             player1={myMatchup.player1}
             player2={myMatchup.player2}
@@ -145,9 +131,7 @@ export function PotSummary({
       {/* Other matchups */}
       {otherMatchups.length > 0 && (
         <div>
-          <div className="text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wide">
-            Other Matchups
-          </div>
+          <div className="text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wide">Other Matchups</div>
           <div className="space-y-2">
             {otherMatchups.map((potInfo, index) => (
               <PotRow
@@ -156,7 +140,7 @@ export function PotSummary({
                 player2={potInfo.player2}
                 pot={potInfo.pot}
                 isMyMatchup={false}
-                delay={ANIMATION_DURATIONS.potSummary.staggerDelay / 1000 * (index + 1)}
+                delay={0.1 * (index + 1)}
               />
             ))}
           </div>
