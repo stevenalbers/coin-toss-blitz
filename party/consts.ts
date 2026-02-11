@@ -1,5 +1,5 @@
 export const ROUND_TIME = 15000
-export const COIN_FLIP_COUNTDOWN_SECONDS = 30
+export const COIN_FLIP_COUNTDOWN_SECONDS = 60
 
 export const BET_OPTIONS = {
     low: [1, 5, 10, 15],
@@ -28,7 +28,7 @@ export const ANIMATION_DURATIONS = {
     },
 
     results: {
-        total: 30000,           // Time before "Next round" message
+        total: 60000,           // Time before "Next round" message
         flipResultDelay: 200,  // Delay before flip result appears
         outcomeDelay: 400,     // Delay before win/loss appears
         chipChangeDelay: 600,  // Delay before chip change appears
