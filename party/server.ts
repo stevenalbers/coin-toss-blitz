@@ -168,11 +168,16 @@ export default class GameServer implements Party.Server {
     // Check if player already locked in
     if (player.betStatus === "locked") return;
 
-    // Validate bet amount based on player status
-    const validBets = player.eliminated ? BET_OPTIONS.eliminated : BET_OPTIONS.low;
+    // Validate bet amount based on player status and current round
+    const { currentRound } = this.gameState;
+    const validBets = player.eliminated
+      ? BET_OPTIONS.eliminated
+      : currentRound >= 7
+        ? BET_OPTIONS.high
+        : BET_OPTIONS.low;
 
     // Allow all-in only in round 10 for active players
-    if (this.gameState.currentRound === 10 && !player.eliminated) {
+    if (currentRound === 10 && !player.eliminated) {
       validBets.push(player.chips); // All-in = current chips
     }
 
