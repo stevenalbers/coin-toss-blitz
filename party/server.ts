@@ -14,12 +14,13 @@ import type {
 import { calculatePotResult, applyPotResult } from "../lib/utils/potCalculation";
 import { sortPlayersWithTiebreaker, calculateAvgLockInTime } from "../lib/utils/tiebreaker";
 import { generateBotBet, generateBotLockInDelay, createBotPlayer } from "./botLogic";
-import { BET_OPTIONS, ROUND_TIME } from "./consts";
+import { BET_OPTIONS, COIN_FLIP_COUNTDOWN_SECONDS, ROUND_TIME, ANIMATION_DURATIONS } from "./consts";
 
 export default class GameServer implements Party.Server {
   private gameState: GameState;
   private bettingTimer: NodeJS.Timeout | null = null;
   private countdownTimer: NodeJS.Timeout | null = null;
+  private resultsTimer: NodeJS.Timeout | null = null;
   private botTimers: Map<string, NodeJS.Timeout> = new Map();
 
   constructor(readonly room: Party.Room) {
@@ -107,6 +108,12 @@ export default class GameServer implements Party.Server {
       case "host_resume":
         this.handleHostResume(playerId);
         break;
+      case "host_skip_countdown":
+        this.handleHostSkipCountdown(playerId);
+        break;
+      case "host_skip_results":
+        this.handleHostSkipResults(playerId);
+        break;
       case "ping":
         this.sendToConnection(sender, { type: "pong" });
         break;
@@ -168,11 +175,16 @@ export default class GameServer implements Party.Server {
     // Check if player already locked in
     if (player.betStatus === "locked") return;
 
-    // Validate bet amount based on player status
-    const validBets = player.eliminated ? BET_OPTIONS.eliminated : BET_OPTIONS.low;
+    // Validate bet amount based on player status and current round
+    const { currentRound } = this.gameState;
+    const validBets = player.eliminated
+      ? BET_OPTIONS.eliminated
+      : currentRound >= 7
+        ? BET_OPTIONS.high
+        : BET_OPTIONS.low;
 
     // Allow all-in only in round 10 for active players
-    if (this.gameState.currentRound === 10 && !player.eliminated) {
+    if (currentRound === 10 && !player.eliminated) {
       validBets.push(player.chips); // All-in = current chips
     }
 
@@ -212,6 +224,9 @@ export default class GameServer implements Party.Server {
       playerId,
       lockTime: player.currentBetLockTime,
     });
+
+    // Broadcast updated game state so clients see the locked status
+    this.broadcastState();
 
     // Check if all players have locked in
     this.checkAllPlayersLocked();
@@ -319,6 +334,43 @@ export default class GameServer implements Party.Server {
     this.broadcastState();
   }
 
+  private handleHostSkipCountdown(playerId: string) {
+    // Verify player is host
+    if (playerId !== this.gameState.hostId) return;
+
+    // Only allow skipping during COUNTDOWN phase
+    if (this.gameState.phase !== "COUNTDOWN") return;
+
+    // Clear the countdown timer
+    if (this.countdownTimer) {
+      clearTimeout(this.countdownTimer);
+      this.countdownTimer = null;
+    }
+
+    // Reset countdown value
+    this.gameState.countdownValue = null;
+
+    // Immediately perform the flip
+    this.performFlip();
+  }
+
+  private handleHostSkipResults(playerId: string) {
+    // Verify player is host
+    if (playerId !== this.gameState.hostId) return;
+
+    // Only allow skipping during RESULTS phase
+    if (this.gameState.phase !== "RESULTS") return;
+
+    // Clear the results timer
+    if (this.resultsTimer) {
+      clearTimeout(this.resultsTimer);
+      this.resultsTimer = null;
+    }
+
+    // Immediately advance to next round
+    this.advanceToNextRound();
+  }
+
   // ==================== GAME LOGIC ====================
 
   private startRound(roundNumber: number) {
@@ -410,11 +462,27 @@ export default class GameServer implements Party.Server {
     const bot = this.gameState.players.get(botId);
     if (!bot || !bot.isBot) return;
 
+    // Only process bot bet if still in BETTING phase
+    if (this.gameState.phase !== "BETTING") {
+      // Clear the timer if it hasn't been cleared yet
+      this.botTimers.delete(botId);
+      return;
+    }
+
+    // Only bet once per round - check if already locked
+    if (bot.betStatus === "locked") {
+      this.botTimers.delete(botId);
+      return;
+    }
+
     // Generate bot bet
     const bet = generateBotBet(bot.eliminated, this.gameState.currentRound);
     bot.currentBet = bet;
     bot.betStatus = "locked";
     bot.currentBetLockTime = Date.now();
+
+    // Remove timer from map since it has fired
+    this.botTimers.delete(botId);
 
     this.broadcast({
       type: "bet_locked",
@@ -428,7 +496,7 @@ export default class GameServer implements Party.Server {
 
   private checkAllPlayersLocked() {
     const allLocked = Array.from(this.gameState.players.values())
-      .filter(p => !p.sittingOut)
+      .filter(p => !p.isBot)
       .every(p => p.betStatus === "locked");
 
     if (allLocked && this.gameState.phase === "BETTING") {
@@ -442,6 +510,10 @@ export default class GameServer implements Party.Server {
   }
 
   private endBettingPhase() {
+    // Clear all bot timers to prevent them from firing during countdown
+    this.botTimers.forEach(timer => clearTimeout(timer));
+    this.botTimers.clear();
+
     // Auto-assign bets for unlocked players
     this.gameState.players.forEach(player => {
       if (player.betStatus !== "locked" && !player.sittingOut) {
@@ -452,7 +524,6 @@ export default class GameServer implements Party.Server {
           : currentRound >= 7
             ? BET_OPTIONS.high
             : BET_OPTIONS.low;
-        // const validBets = player.eliminated ? [0, 10, 25] : [10, 25, 50];
         const randomBet = betOptions[Math.floor(Math.random() * betOptions.length)];
 
         player.currentBet = randomBet;
@@ -467,7 +538,7 @@ export default class GameServer implements Party.Server {
 
   private startCountdown() {
     this.gameState.phase = "COUNTDOWN";
-    this.gameState.countdownValue = 3;
+    this.gameState.countdownValue = COIN_FLIP_COUNTDOWN_SECONDS;
 
     const countdown = () => {
       if (this.gameState.countdownValue === null) return;
@@ -572,10 +643,11 @@ export default class GameServer implements Party.Server {
 
     this.broadcastState();
 
-    // Wait 5 seconds, then continue
-    setTimeout(() => {
+    // Wait for results animation to complete, then continue
+    this.resultsTimer = setTimeout(() => {
+      this.resultsTimer = null;
       this.advanceToNextRound();
-    }, 5000);
+    }, ANIMATION_DURATIONS.results.total);
   }
 
   private advanceToNextRound() {

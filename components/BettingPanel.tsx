@@ -144,13 +144,15 @@ export function BettingPanel({
           {/* Lock in button */}
           <button
             onClick={handleLockIn}
-            disabled={!selectedBet}
+            disabled={!selectedBet || isLocked}
             className={`
               w-full py-4 rounded-lg font-bold text-lg transition-all
               ${
-                selectedBet
-                  ? "bg-green-600 hover:bg-green-700 text-white"
-                  : "bg-gray-800 text-gray-500 cursor-not-allowed"
+                !selectedBet
+                  ? "bg-gray-800 text-gray-500 cursor-not-allowed"
+                  : timeLeft < 3 && timeLeft > 0
+                    ? "bg-red-600 hover:bg-red-700 text-white animate-pulse"
+                    : "bg-green-600 hover:bg-green-700 text-white"
               }
             `}
           >

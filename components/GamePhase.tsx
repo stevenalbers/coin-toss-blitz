@@ -1,10 +1,16 @@
 "use client";
 
+import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import type { SerializedGameState, Player } from "../lib/types/game";
 import { CoinFlip } from "./CoinFlip";
 import { Leaderboard } from "./Leaderboard";
 import { BettingPanel } from "./BettingPanel";
 import { HostControls } from "./HostControls";
+import { MatchupReveal } from "./MatchupReveal";
+import { PotSummary } from "./PotSummary";
+import { ResultsSummary } from "./ResultsSummary";
+import { ANIMATION_DURATIONS } from "@/party/consts";
 
 interface GamePhaseProps {
   gameState: SerializedGameState;
@@ -22,6 +28,28 @@ export function GamePhase({
   onSendMessage,
 }: GamePhaseProps) {
   const players = Object.values(gameState.players);
+
+  // Track matchup reveal animation
+  const [showMatchupReveal, setShowMatchupReveal] = useState(false);
+  const [hasSeenMatchupForRound, setHasSeenMatchupForRound] = useState<number | null>(null);
+
+  // Track results animation completion
+  const [resultAnimationComplete, setResultAnimationComplete] = useState(false);
+
+  // Reset matchup reveal when round changes
+  useEffect(() => {
+    if (gameState.phase === "BETTING" && gameState.currentRound !== hasSeenMatchupForRound) {
+      setShowMatchupReveal(true);
+      setHasSeenMatchupForRound(null);
+    }
+  }, [gameState.phase, gameState.currentRound, hasSeenMatchupForRound]);
+
+  // Reset result animation when entering RESULTS phase
+  useEffect(() => {
+    if (gameState.phase === "RESULTS") {
+      setResultAnimationComplete(false);
+    }
+  }, [gameState.phase]);
 
   // Lobby phase
   if (gameState.phase === "LOBBY") {
@@ -91,6 +119,20 @@ export function GamePhase({
 
   // Betting phase
   if (gameState.phase === "BETTING" && myPlayer) {
+    // Show matchup reveal animation before betting UI
+    if (showMatchupReveal && hasSeenMatchupForRound !== gameState.currentRound) {
+      return (
+        <MatchupReveal
+          myPlayer={myPlayer}
+          opponent={opponent}
+          onComplete={() => {
+            setShowMatchupReveal(false);
+            setHasSeenMatchupForRound(gameState.currentRound);
+          }}
+        />
+      );
+    }
+
     return (
       <div className="space-y-6">
         <div className="text-center">
@@ -141,12 +183,12 @@ export function GamePhase({
   if (gameState.phase === "COUNTDOWN") {
     return (
       <div className="space-y-6">
-        <div className="text-center">
-          <div className="text-8xl font-bold animate-pulse">
-            {gameState.countdownValue}
-          </div>
-          <p className="text-gray-400 mt-4">Get ready...</p>
-        </div>
+        <PotSummary
+          pairs={gameState.pairs}
+          players={gameState.players}
+          myPlayerId={myPlayer?.id || ""}
+          countdownValue={gameState.countdownValue || 1}
+        />
 
         <Leaderboard
           players={players}
@@ -154,6 +196,19 @@ export function GamePhase({
           currentRound={gameState.currentRound}
           totalRounds={10}
         />
+
+        {isHost && (
+          <HostControls
+            phase={gameState.phase}
+            playerCount={players.length}
+            onStart={() => onSendMessage({ type: "host_start" })}
+            onReset={() => onSendMessage({ type: "host_reset" })}
+            onPause={() => onSendMessage({ type: "host_pause" })}
+            onResume={() => onSendMessage({ type: "host_resume" })}
+            onSkipCountdown={() => onSendMessage({ type: "host_skip_countdown" })}
+            isPaused={gameState.isPaused}
+          />
+        )}
       </div>
     );
   }
@@ -165,7 +220,7 @@ export function GamePhase({
         <CoinFlip
           result={gameState.flipResult}
           timestamp={gameState.flipTimestamp}
-          animationDuration={2000}
+          animationDuration={ANIMATION_DURATIONS.coinFlip.duration}
         />
 
         <Leaderboard
@@ -180,38 +235,65 @@ export function GamePhase({
 
   // Results phase
   if (gameState.phase === "RESULTS") {
+    // Calculate chip change for myPlayer
+    const calculateChipChange = (): number => {
+      if (!myPlayer || !opponent) return 0;
+
+      const myBet = myPlayer.currentBet || 0;
+      const opponentBet = opponent.currentBet || 0;
+      const pot = myBet + opponentBet;
+
+      const didWin = myPlayer.assignedSide === gameState.flipResult;
+
+      // If eliminated, chips don't change
+      if (myPlayer.eliminated) return 0;
+
+      // Winner gets pot, loser loses pot
+      return didWin ? pot : -pot;
+    };
+
+    const chipChange = calculateChipChange();
+
     return (
       <div className="space-y-6">
-        <div className="bg-gray-900 rounded-lg p-6">
-          <h3 className="text-2xl font-bold mb-4 text-center">Round {gameState.currentRound} Results</h3>
-
-          {myPlayer && (
-            <div className="bg-gray-800 rounded-lg p-4 mb-4">
-              <div className="text-center">
-                <div className="text-4xl mb-2">
-                  {myPlayer.assignedSide === gameState.flipResult ? "🎉" : "😔"}
-                </div>
-                <div className="text-xl font-bold mb-2">
-                  {myPlayer.assignedSide === gameState.flipResult ? "You Won!" : "You Lost"}
-                </div>
-                <div className="text-2xl font-bold text-green-400">
-                  {myPlayer.chips} 🪙
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div className="text-center text-gray-400">
-            Next round starting soon...
-          </div>
-        </div>
+        <ResultsSummary
+          myPlayer={myPlayer}
+          flipResult={gameState.flipResult!}
+          chipChange={chipChange}
+          onAnimationComplete={() => setResultAnimationComplete(true)}
+        />
 
         <Leaderboard
           players={players}
           myPlayerId={myPlayer?.id || null}
           currentRound={gameState.currentRound}
           totalRounds={10}
+          animatePositions={true}
         />
+
+        {resultAnimationComplete && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: ANIMATION_DURATIONS.generic.quick / 1000 }}
+            className="text-center text-gray-400"
+          >
+            Next round starting soon...
+          </motion.div>
+        )}
+
+        {isHost && (
+          <HostControls
+            phase={gameState.phase}
+            playerCount={players.length}
+            onStart={() => onSendMessage({ type: "host_start" })}
+            onReset={() => onSendMessage({ type: "host_reset" })}
+            onPause={() => onSendMessage({ type: "host_pause" })}
+            onResume={() => onSendMessage({ type: "host_resume" })}
+            onSkipResults={() => onSendMessage({ type: "host_skip_results" })}
+            isPaused={gameState.isPaused}
+          />
+        )}
       </div>
     );
   }
